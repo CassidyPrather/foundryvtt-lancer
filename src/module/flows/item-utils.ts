@@ -144,6 +144,9 @@ export async function applySelfHeat(
   if (state.data.self_heat) {
     const roll = await new Roll(state.data.self_heat).evaluate();
     self_heat = roll.total!;
+    // Resisted self-heat is halved, rounding up, like any other resisted heat
+    const sys = state.actor.system as { resistances?: { heat?: boolean }; statuses?: { shredded?: boolean } };
+    if (self_heat > 0 && sys.resistances?.heat && !sys.statuses?.shredded) self_heat = Math.ceil(self_heat / 2);
     state.data.self_heat_result = {
       roll,
       tt: await roll.getTooltip(),
