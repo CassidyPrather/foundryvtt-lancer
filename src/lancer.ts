@@ -310,8 +310,8 @@ Hooks.once("init", () => {
   CONFIG.ui.pause = LancerGamePause;
 
   CONFIG.Dice.fulfillment.dice = {
-    // Disabled due to https://github.com/foundryvtt/foundryvtt/issues/13694
-    // dc : { icon: "<i class='fa-solid fa-coins'></i>", label: "dc" },
+    // Needs Foundry 14.361+ for https://github.com/foundryvtt/foundryvtt/issues/13694
+    dc: { icon: "<i class='fa-solid fa-coins'></i>", label: "dc" },
     d3: { icon: "<i class='fa-solid fa-dice-d6'></i>", label: "d3" },
     ...CONFIG.Dice.fulfillment.dice,
   };
