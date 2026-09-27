@@ -7,7 +7,8 @@ import { ref_params, resolve_ref_element } from "../helpers/refs";
 import { inc_if, resolveDotpath } from "../helpers/commons";
 import { LancerActor, type LancerMECH, type LancerPILOT } from "./lancer-actor";
 import { fetchV2PilotViaShareCode, fetchV3PilotViaShareCode } from "../util/compcon";
-import type { LancerFRAME } from "../item/lancer-item";
+import type { LancerFRAME, LancerTALENT } from "../item/lancer-item";
+import type { CounterData } from "../models/bits/counter";
 import { clicker_num_input } from "../helpers/actor";
 import type { ResolvedDropData } from "../helpers/dragdrop";
 import { EntryType } from "../enums";
@@ -319,6 +320,33 @@ export function pilotCounters(pilot: LancerPILOT, _options: HelperOptions): stri
       }
     }
   }
+
+  // Counters granted by unlocked talent ranks. These live on the talent items; the counter handlers
+  // drill down through the itemTypes path to update them.
+  pilot.itemTypes.talent.forEach((talent, ti) => {
+    const ranks = (talent as LancerTALENT).system.ranks.slice(0, (talent as LancerTALENT).system.curr_rank);
+    ranks.forEach((rank, ri) => {
+      ((rank.counters ?? []) as CounterData[]).forEach((counter, ci) => {
+        if (counter.max == null) return;
+        const path = `itemTypes.talent.${ti}.system.ranks.${ri}.counters.${ci}`;
+        if (counter.max <= COUNTER_MAX) {
+          counter_detail = counter_detail.concat(buildCounterHTML(counter, path, { noContextMenu: true }));
+        } else {
+          // Too many hexes to draw: show the value, with a hidden hex carrying the path for the +/- buttons
+          counter_detail = counter_detail.concat(`
+          <div class="card clipped-bot counter-wrapper" data-path="${path}">
+            ${buildCounterHeader(counter, path, { noContextMenu: true })}
+            <div class="flexrow flex-center no-wrap">
+              <button class="clicker-minus-button hex" type="button">‒</button>
+              <i class="counter-hex" style="display: none" data-available="true" data-path="${path}"></i>
+              <span class="counter-value">${counter.value} / ${counter.max}</span>
+              <button class="clicker-plus-button hex" type="button">+</button>
+            </div>
+          </div>`);
+        }
+      });
+    });
+  });
 
   return `
   <div class="card clipped double">
