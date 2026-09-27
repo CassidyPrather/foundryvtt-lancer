@@ -143,6 +143,7 @@ async function updatePilot(
  * @param populatedMounts   - idk tbh lol
  * @param populatedSystems  - Array of mech system UUIDs
  * @param frame
+ * @returns Whether COMP/CON provided no stats for the mech, so they were left unchanged
  */
 async function updateMech(
   mech: LancerMECH,
@@ -153,10 +154,43 @@ async function updateMech(
   populatedSystems: string[],
   frame?: LancerFRAME | null
 ) {
+  // COMP/CON v3 only records a mech's stats once it has been used in active mode; until then every
+  // current and max stat is 0. Importing those would leave the mech at 0 HP and 0 structure.
+  const hasStats = (data.stats?.max?.structure ?? 0) > 0;
+  const stats = {
+    hp: {
+      value: data.stats.current.hp,
+      max: data.stats.max.hp,
+    },
+    overshield: {
+      value: data.stats.current.overshield,
+      max: data.stats.max.overshield,
+    },
+    burn: data.stats.current.burn,
+    activations: data.stats.current.activations,
+    heat: {
+      value: data.stats.current.heat,
+      max: data.stats.max.heat,
+    },
+    stress: {
+      value: data.stats.current.stress,
+      max: data.stats.max.stress,
+    },
+    structure: {
+      value: data.stats.current.structure,
+      max: data.stats.max.structure,
+    },
+    overcharge: data.stats.current.overcharge,
+    repairs: {
+      value: data.stats.current.repairCapacity,
+      max: data.stats.max.repairCapacity,
+    },
+  };
+  const portrait = data.img?.cloud_portrait || data.img?.portrait || data.portrait || null;
   await mech.update({
     name: data.name,
     folder: pilot.folder?.id || null,
-    img: replaceDefaultResource(mech.img, data.portrait, frameToPath(frame?.name ?? data.frameData.name)),
+    img: replaceDefaultResource(mech.img, portrait, frameToPath(frame?.name ?? data.frameData.name)),
     ownershipLevel,
     prototypeToken: {
       name: pilot.system.callsign || data.name,
@@ -174,35 +208,9 @@ async function updateMech(
     system: {
       // Universal stuff
       lid: data.id,
-      hp: {
-        value: data.stats.current.hp,
-        max: data.stats.max.hp,
-      },
-      overshield: {
-        value: data.stats.current.overshield,
-        max: data.stats.max.overshield,
-      },
-      burn: data.stats.current.burn,
-      activations: data.stats.current.activations,
-      heat: {
-        value: data.stats.current.heat,
-        max: data.stats.max.heat,
-      },
-      stress: {
-        value: data.stats.current.stress,
-        max: data.stats.max.stress,
-      },
-      structure: {
-        value: data.stats.current.structure,
-        max: data.stats.max.structure,
-      },
+      ...(hasStats ? stats : {}),
 
       // Mech stuff
-      overcharge: data.stats.current.overcharge,
-      repairs: {
-        value: data.stats.current.repairCapacity,
-        max: data.stats.max.repairCapacity,
-      },
       core_active: data.coreActive,
       core_energy: data.corePower,
       notes: data.notes,
@@ -214,6 +222,22 @@ async function updateMech(
       },
     },
   });
+
+  return !hasStats;
+}
+
+/**
+ * Fill mechs to their maximum HP, structure, stress and repairs.
+ */
+async function fillMechStats(mechs: LancerMECH[]) {
+  for (const mech of mechs) {
+    await mech.update({
+      "system.hp.value": mech.system.hp.max,
+      "system.structure.value": mech.system.structure.max,
+      "system.stress.value": mech.system.stress.max,
+      "system.repairs.value": mech.system.repairs?.max ?? 0,
+    });
+  }
 }
 
 /**
@@ -754,12 +778,15 @@ export async function importCCv3(
       }
     };
 
+    const mechsToFill: LancerMECH[] = [];
     for (const importedMech of data.mechs) {
       // Find the existing mech, or create one as necessary
       let mech = game.actors!.find((m: LancerActor) => m.is_mech() && m.system.lid == importedMech.id) as LancerMECH;
+      let isNewMech = false;
       if (!mech) {
         const newMech = await createNewMech(importedMech);
         if (newMech) mech = newMech;
+        isNewMech = !!newMech;
       }
       // createNewMech already recorded why this mech could not be created
       if (!mech) continue;
@@ -959,7 +986,17 @@ export async function importCCv3(
       await mech.updateEmbeddedDocuments("Item", mechItemUpdates);
 
       // Perform base mech update
-      await updateMech(mech, pilot, importedMech, ownershipLevel, populatedMounts, populatedSystems, compendiumFrame);
+      const noStats = await updateMech(
+        mech,
+        pilot,
+        importedMech,
+        ownershipLevel,
+        populatedMounts,
+        populatedSystems,
+        compendiumFrame
+      );
+      // A new mech without stats from COMP/CON starts at full
+      if (noStats && isNewMech) mechsToFill.push(mech);
 
       // Try to use CC's starred mech otherwise set the first one as active.
       if (!activeMechUuid) activeMechUuid = mech.uuid;
@@ -974,7 +1011,9 @@ export async function importCCv3(
       },
     });
 
-    pilot.effectHelper.propagateEffects(true);
+    // Pass the pilot's bonuses down before filling mechs, so their maximums include them
+    await pilot.effectHelper.propagateEffectsInner(true);
+    await fillMechStats(mechsToFill);
     // Reset current data and render all
     pilot.render();
     reportImportResult(pilot, _missingActors, _missingItems);
