@@ -298,7 +298,7 @@ export class LancerItem<out SubType extends Item.SubType = Item.SubType> extends
    */
   _generateEphemeralEffects(): LancerActiveEffect[] {
     // Destroyed items produce no effects
-    if ((this as any).destroyed === true || !this.isEquipped()) return [];
+    if ((this.system as any).destroyed === true || !this.isEquipped()) return [];
 
     // Generate from bonuses + innate effects
     let effects = [];
