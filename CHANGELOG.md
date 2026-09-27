@@ -1,3 +1,9 @@
+# 3.3.1 (2026-09-27)
+
+## Bug Fixes
+
+- Importing a pilot by COMP/CON share code works again: the Download button responds on the first click, uses the code currently in the field, and accepts a COMP/CON share link as well as the bare code.
+
 # 3.3.0 (2026-09-27)
 
 ## Features

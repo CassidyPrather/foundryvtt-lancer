@@ -3,7 +3,7 @@
   "type": "system",
   "title": "LANCER",
   "description": "<p>A Foundry VTT game system for <a href=\"https://massif-press.itch.io/corebook-pdf\">Lancer</a> by <a href=\"https://massif-press.itch.io/\">Massif Press</a>, a mud-and-lasers tactical mech RPG.</p><p>\"Lancer for FoundryVTT\" is not an official <i>Lancer</i> product; it is a third party work, and is not affiliated with Massif Press. \"Lancer for FoundryVTT\" is published via the <i>Lancer</i> Third Party License.</p><p><i>Lancer</i> is copyright Massif Press.</p>",
-  "version": "3.3.0",
+  "version": "3.3.1",
   "compatibility": { "minimum": 14, "verified": 14, "maximum": 14 },
   "authors": [
     { "name": "Eranziel" },
@@ -77,7 +77,7 @@
   "secondaryTokenAttribute": "heat",
   "url": "https://github.com/CassidyPrather/foundryvtt-lancer",
   "manifest": "https://github.com/CassidyPrather/foundryvtt-lancer/releases/latest/download/system.json",
-  "download": "https://github.com/CassidyPrather/foundryvtt-lancer/releases/download/v3.3.0/lancer-v3.3.0.zip",
+  "download": "https://github.com/CassidyPrather/foundryvtt-lancer/releases/download/v3.3.1/lancer-v3.3.1.zip",
   "license": "GNU GPLv3",
   "readme": "https://github.com/CassidyPrather/foundryvtt-lancer/blob/master/README.md",
   "bugs": "https://github.com/CassidyPrather/foundryvtt-lancer/issues",
