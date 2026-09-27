@@ -341,6 +341,7 @@ export class LancerItem<out SubType extends Item.SubType = Item.SubType> extends
       case EntryType.WEAPON_MOD:
       case EntryType.CORE_BONUS:
       case EntryType.TALENT:
+      case EntryType.RESERVE:
         bonus_groups.push({ bonuses: (this as any).system.bonuses });
         break;
       case EntryType.MECH_WEAPON:
