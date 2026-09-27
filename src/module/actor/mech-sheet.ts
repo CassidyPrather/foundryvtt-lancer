@@ -82,6 +82,16 @@ export class LancerMechSheet extends LancerActorSheet<EntryType.MECH> {
         "system.loadout.frame": drop.document.id,
       });
       await this.actor.loadoutHelper.resetMounts();
+      // A mech's first frame sets its maximums, so start it at full rather than at 0
+      if (!oldFrame) {
+        const sys = this.actor.system;
+        await this.actor.update({
+          "system.hp.value": sys.hp.max,
+          "system.structure.value": sys.structure.max,
+          "system.stress.value": sys.stress.max,
+          "system.repairs.value": sys.repairs.max,
+        });
+      }
     } else if (is_new && drop.type == "Item" && drop.document.is_mech_weapon()) {
       // If frame, weapon, put it in first available slot. Who cares if it fits
       let currMounts: SourceData.Mech["loadout"]["weapon_mounts"] = foundry.utils.duplicate(
