@@ -188,11 +188,13 @@ export class LancerItem<out SubType extends Item.SubType = Item.SubType> extends
     } else if (this.is_talent()) {
       // Talent apply unlocked items
       let unlocked_ranks = this.system.ranks.slice(0, this.system.curr_rank);
+      // An exclusive highest rank supersedes the bonuses and counters of the ranks below it
+      const top_rank = unlocked_ranks[unlocked_ranks.length - 1];
+      const granting_ranks = top_rank?.exclusive ? [top_rank] : unlocked_ranks;
       this.system.actions = unlocked_ranks.flatMap(a => a.actions);
-      this.system.bonuses = unlocked_ranks.flatMap(a => a.bonuses);
-      this.system.counters = unlocked_ranks.flatMap(a => a.counters);
+      this.system.bonuses = granting_ranks.flatMap(a => a.bonuses);
+      this.system.counters = granting_ranks.flatMap(a => a.counters);
       this.system.synergies = unlocked_ranks.flatMap(a => a.synergies);
-      // TODO - handle exclusive
     } else if (this.is_bond()) {
       // Construct uses from frequency
       this.system.powers = this.system.powers.map(p => fixupPowerUses(p));
