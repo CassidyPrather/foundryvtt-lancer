@@ -174,6 +174,7 @@ export function onHotbarDrop(_bar: any, data: any, slot: number) {
           break;
       }
       command = `${getActor}actor.beginStatFlow("${data.args?.statPath}");`;
+      break;
     case DroppableFlowType.ATTACK:
       if (!(actorOrItem instanceof LancerItem)) {
         ui.notifications!.error("Attack flow drop on hotbar was not from an item");
