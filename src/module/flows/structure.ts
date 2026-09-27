@@ -2,7 +2,7 @@
 import { LancerActor } from "../actor/lancer-actor";
 import { LANCER } from "../config";
 import type { UUIDRef } from "../source-template";
-import { userOwnsActor } from "../util/misc";
+import { keepLegendaryRollWithFewestOnes, userOwnsActor } from "../util/misc";
 import { renderTemplateStep } from "./_render";
 import { Flow, type FlowState, type Step } from "./flow";
 import { LancerFlowState } from "./interfaces";
@@ -212,6 +212,7 @@ export async function rollStructureTable(state: FlowState<LancerFlowState.Primar
     formula = `{${formula}, ${formula}}kh`;
   }
   let roll: Roll = await new Roll(formula).evaluate();
+  keepLegendaryRollWithFewestOnes(roll);
 
   let result = roll.total;
   if (result === undefined) return false;

@@ -147,3 +147,25 @@ export async function tokenScrollText(
   if (!game.settings.get(game.system.id, LANCER.setting_floating_damage_numbers)) return;
   await canvas.interface?.createScrollingText(token.center, content, style);
 }
+
+/**
+ * Legendary NPCs roll structure and overheat checks twice and keep the higher result
+ * (`{Nd6kl1, Nd6kl1}kh`). On a tie Foundry keeps the last roll, but a tied roll with more 1s is
+ * worse (multiple 1s are a Crushing Hit or Irreversible Meltdown), so keep the tied roll with the
+ * fewest 1s instead. Call this right after evaluating, before building the tooltip.
+ */
+export function keepLegendaryRollWithFewestOnes(roll: Roll): void {
+  const pool = roll.terms[0] as any;
+  if (!(pool instanceof foundry.dice.terms.PoolTerm) || ((pool as any).rolls?.length ?? 0) < 2) return;
+  const rolls = (pool as any).rolls as Roll[];
+  const ones = (r: Roll) => (r.terms[0] as foundry.dice.terms.Die).results.filter(v => v.result === 1).length;
+  const best = Math.max(...rolls.map(r => r.total ?? 0));
+  let pick = -1;
+  rolls.forEach((r, i) => {
+    if (r.total === best && (pick < 0 || ones(r) < ones(rolls[pick]))) pick = i;
+  });
+  (pool as any).results.forEach((res: { active: boolean; discarded: boolean }, i: number) => {
+    res.active = i === pick;
+    res.discarded = i !== pick;
+  });
+}
