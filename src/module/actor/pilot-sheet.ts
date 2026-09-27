@@ -149,13 +149,15 @@ export class LancerPilotSheet extends LancerActorSheet<EntryType.PILOT> {
     console.log(`${lp} Pilot Data of selected JSON:`, pilotData);
 
     if (!pilotData) return;
-    ui.notifications!.info(`Starting import of ${pilotData.name}, Callsign ${pilotData.callsign}. Please wait.`);
-    console.log(`${lp} Starting import of ${pilotData.name}, Callsign ${pilotData.callsign}.`);
+    // CCv3 JSON exports wrap the pilot in { EXPORT_TYPE, data }
+    const { name, callsign } = (pilotData as any).data ?? pilotData;
+    ui.notifications!.info(`Starting import of ${name}, Callsign ${callsign}. Please wait.`);
+    console.log(`${lp} Starting import of ${name}, Callsign ${callsign}.`);
     console.log(`${lp} Parsed Pilot Data pack:`, pilotData);
 
     await importCC(this.actor as LancerPILOT, pilotData);
-    ui.notifications!.info(`Import of ${pilotData.name}, Callsign ${pilotData.callsign} complete.`);
-    console.log(`${lp} Import of ${pilotData.name}, Callsign ${pilotData.callsign} complete.`);
+    ui.notifications!.info(`Import of ${name}, Callsign ${callsign} complete.`);
+    console.log(`${lp} Import of ${name}, Callsign ${callsign} complete.`);
     this.render();
   }
 

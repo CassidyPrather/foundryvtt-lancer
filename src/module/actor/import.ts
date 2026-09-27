@@ -82,13 +82,13 @@ async function updatePilot(
       default_value: 0,
     };
   };
+  // As with mechs, COMP/CON v3 exports all-zero stats for a pilot that hasn't been used in active mode
+  const hasStats = (data.stats?.max?.hp ?? 0) > 0;
   await pilot.update({
     name: data.name,
     img: replaceDefaultResource(pilot.img, portrait),
     system: {
-      hp: {
-        value: data.stats.current.hp,
-      },
+      ...(hasStats ? { hp: { value: data.stats.current.hp } } : {}),
 
       // Pilot specific
       background: data.background,
@@ -387,6 +387,10 @@ export async function importCCv3(
   }
 
   hasCreatePermissions();
+
+  // A pilot that has never been imported into starts at full HP if COMP/CON has no stats for it
+  const firstImport = pilot.system.last_cloud_update === "never";
+  const pilotHasStats = (data.stats?.max?.hp ?? 0) > 0;
 
   // Extract data
   try {
@@ -1014,6 +1018,7 @@ export async function importCCv3(
     // Pass the pilot's bonuses down before filling mechs, so their maximums include them
     await pilot.effectHelper.propagateEffectsInner(true);
     await fillMechStats(mechsToFill);
+    if (firstImport && !pilotHasStats) await pilot.update({ "system.hp.value": pilot.system.hp.max });
     // Reset current data and render all
     pilot.render();
     reportImportResult(pilot, _missingActors, _missingItems);
