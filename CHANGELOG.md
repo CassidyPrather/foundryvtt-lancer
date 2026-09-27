@@ -1,3 +1,44 @@
+# 3.2.0 (2026-09-27)
+
+First release of this fork. It supports Foundry VTT v14 only.
+
+## Foundry v14
+
+- Attack templates (Blast, Burst, Cone, Line) are placed as Scene Regions, since v14 merged Measured Templates into Regions. Template targeting and the "remove attack templates at turn start" automation work again.
+- Frame and NPC feature sheets render again (v14 removed the `{{select}}` helper).
+- Chat cards show the Blind/Private/Self labels and follow the v14 message modes.
+- Chat cards post, actors prepare data, and weapon bonuses apply on v14 (from upstream PR #964 by binarydesu).
+- Settings sidebar Help button, combat tracker reroll filter and tracker tooltips on v14 (from upstream PR #979 by ctincorvia).
+- Custom data fields no longer use the deprecated `migrateSource`, and region containment uses the v14 core behavior (from the upstream `foundry-v14` branch).
+- No more console spam from the deprecated `CONST.ACTIVE_EFFECT_MODES` on every actor update.
+- Removed the TinyMCE text editor dialog; the popout editor uses ProseMirror.
+
+## Bug Fixes
+
+- #743, #914 - Destroyed systems, weapons and mods no longer grant bonuses, damage, range or tags.
+- #899 - Reserves apply their bonuses (e.g. Extra Repairs).
+- #921 - Exclusive talent ranks replace the bonuses and counters of lower ranks.
+- #900 - `{ll}` and `{grit}` in bonuses resolve for items owned by a mech.
+- #905 - Size bonuses step through size increments (Fomorian Frame takes size 1/2 to 1), capped at 3.
+- Flat ranged and melee attack bonuses apply to weapon attacks.
+- #917 - Resist Heat halves self-heat.
+- #768 - Legendary NPCs break structure/overheat ties in favor of the roll with fewer 1s.
+- #320 - A mech starts at full HP, structure, stress and repairs when it gets its first frame.
+- #888 - Deleting a weapon's selected profile no longer breaks the weapon, and a weapon keeps at least one profile.
+- #977 - Pilots can equip a fifth piece of gear (Extended Harness).
+- #684 - Talent rank counters (e.g. Blademaster Dice) show on the pilot sheet.
+- #691 - Document links and inline rolls render in sheet text cards.
+- #467 - Dragging a stat roller to the hotbar creates a macro.
+- #674 - Duplicated NPC features, classes and templates get their own lid.
+- #954 - Single-profile weapons no longer show their actions twice (needs a compendium re-import).
+- #770 - Weapon mods honor restricted mount sizes and types (needs a compendium re-import).
+- #913 - Coin flips (`dc`) can be fulfilled manually.
+- COMP/CON import:
+  - #441 - v3 imports equip a fallback frame when the frame isn't in the compendium, and report missing items.
+  - #583 - Imported mechs use their COMP/CON portrait for the actor and the token.
+  - Pilots and mechs from COMP/CON v3 no longer arrive at 0 HP and 0 structure when COMP/CON has no stats for them.
+  - JSON import messages show the pilot's name and callsign.
+
 # 3.1.3 (2026-06-29)
 
 ## Bug Fixes

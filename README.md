@@ -23,7 +23,13 @@ Please see [our wiki](https://github.com/Eranziel/foundryvtt-lancer/wiki) for gu
 
 ## System Installation
 
-Simply search for Lancer in the Foundry system browser and install from there.
+This fork requires Foundry VTT v14. It uses the same package id (`lancer`) as the official system, so uninstall the official Lancer system first, then in **Setup → Game Systems → Install System** paste this manifest URL:
+
+```
+https://github.com/CassidyPrather/foundryvtt-lancer/releases/latest/download/system.json
+```
+
+Foundry's update check then follows this fork's releases. Worlds made with the official system keep working; back up before switching Foundry versions, as world migration is one-way.
 
 ## Contributing
 

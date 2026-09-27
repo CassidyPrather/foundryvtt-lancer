@@ -68,8 +68,9 @@ jobs:
         with:
           allowUpdates: true
           name: ${{ steps.vars.outputs.tag_name }}
-          draft: true
-          prerelease: true
+          # Publish immediately, so the "latest" manifest URL picks the release up
+          draft: false
+          prerelease: false
           omitDraftDuringUpdate: true
           omitPrereleaseDuringUpdate: true
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -78,4 +79,4 @@ jobs:
           # TODO: can we automatically extract the changelog for this release?
           body: |
             
-            [Full changelog](https://github.com/Eranziel/foundryvtt-lancer/blob/master/CHANGELOG.md)
+            [Full changelog](https://github.com/CassidyPrather/foundryvtt-lancer/blob/master/CHANGELOG.md)

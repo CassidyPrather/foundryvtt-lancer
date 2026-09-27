@@ -3,7 +3,7 @@
   "type": "system",
   "title": "LANCER",
   "description": "<p>A Foundry VTT game system for <a href=\"https://massif-press.itch.io/corebook-pdf\">Lancer</a> by <a href=\"https://massif-press.itch.io/\">Massif Press</a>, a mud-and-lasers tactical mech RPG.</p><p>\"Lancer for FoundryVTT\" is not an official <i>Lancer</i> product; it is a third party work, and is not affiliated with Massif Press. \"Lancer for FoundryVTT\" is published via the <i>Lancer</i> Third Party License.</p><p><i>Lancer</i> is copyright Massif Press.</p>",
-  "version": "3.1.3",
+  "version": "3.2.0",
   "compatibility": { "minimum": 14, "verified": 14, "maximum": 14 },
   "authors": [
     { "name": "Eranziel" },
@@ -75,27 +75,27 @@
   "grid": { "distance": 1, "units": "", "type": 2, "diagonals": 0 },
   "primaryTokenAttribute": "hp",
   "secondaryTokenAttribute": "heat",
-  "url": "https://github.com/Eranziel/foundryvtt-lancer",
-  "manifest": "https://github.com/Eranziel/foundryvtt-lancer/releases/latest/download/system.json",
-  "download": "https://github.com/Eranziel/foundryvtt-lancer/releases/download/v3.1.3/lancer-v3.1.3.zip",
+  "url": "https://github.com/CassidyPrather/foundryvtt-lancer",
+  "manifest": "https://github.com/CassidyPrather/foundryvtt-lancer/releases/latest/download/system.json",
+  "download": "https://github.com/CassidyPrather/foundryvtt-lancer/releases/download/v3.2.0/lancer-v3.2.0.zip",
   "license": "GNU GPLv3",
-  "readme": "https://github.com/Eranziel/foundryvtt-lancer/blob/master/README.md",
-  "bugs": "https://github.com/Eranziel/foundryvtt-lancer/issues/new/choose",
-  "changelog": "https://github.com/Eranziel/foundryvtt-lancer/blob/master/CHANGELOG.md",
+  "readme": "https://github.com/CassidyPrather/foundryvtt-lancer/blob/master/README.md",
+  "bugs": "https://github.com/CassidyPrather/foundryvtt-lancer/issues",
+  "changelog": "https://github.com/CassidyPrather/foundryvtt-lancer/blob/master/CHANGELOG.md",
   "media": [
     {
       "type": "cover",
-      "url": "https://raw.githubusercontent.com/Eranziel/foundryvtt-lancer/refs/heads/master/public/assets/banners/powered_by_Lancer-white-on-black-cover.svg",
+      "url": "https://raw.githubusercontent.com/CassidyPrather/foundryvtt-lancer/refs/heads/master/public/assets/banners/powered_by_Lancer-white-on-black-cover.svg",
       "caption": "Powered by Lancer"
     },
     {
       "type": "setup",
-      "url": "https://raw.githubusercontent.com/Eranziel/foundryvtt-lancer/refs/heads/master/public/assets/banners/powered_by_Lancer-white-on-black-setup.svg",
+      "url": "https://raw.githubusercontent.com/CassidyPrather/foundryvtt-lancer/refs/heads/master/public/assets/banners/powered_by_Lancer-white-on-black-setup.svg",
       "caption": "Powered by Lancer"
     },
     {
       "type": "icon",
-      "url": "https://raw.githubusercontent.com/Eranziel/foundryvtt-lancer/refs/heads/master/public/assets/banners/powered_by_Lancer-white-on-black-icon.svg",
+      "url": "https://raw.githubusercontent.com/CassidyPrather/foundryvtt-lancer/refs/heads/master/public/assets/banners/powered_by_Lancer-white-on-black-icon.svg",
       "caption": "Powered by Lancer"
     }
   ],
