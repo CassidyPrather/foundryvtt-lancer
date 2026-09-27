@@ -400,6 +400,18 @@ export class LancerActor<SubType extends Actor.SubType = Actor.SubType> extends 
    *  - Finalize derived data on weaponry based on fully prepared actor statistics
    */
   prepareDerivedData() {
+    // Size bonuses (e.g. Fomorian Frame) move a mech along the size increments rather than adding
+    // numerically, so a size 1/2 frame becomes size 1, not 1.5. Size is capped at 3.
+    if (this.is_mech()) {
+      const base = this.system.loadout.frame?.value?.system.stats.size as number | undefined;
+      const delta = this.system.size - (base ?? this.system.size);
+      const steps = [0.5, 1, 2, 3];
+      const start = base === undefined ? -1 : steps.indexOf(base);
+      if (delta !== 0 && Number.isInteger(delta) && start >= 0) {
+        this.system.size = steps[Math.min(Math.max(start + delta, 0), steps.length - 1)];
+      }
+    }
+
     // Ask items to prepare their final attributes using weapon_bonuses / equip information
     for (let item of this.items.contents) {
       item.prepareFinalAttributes();
