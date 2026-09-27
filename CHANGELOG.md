@@ -1,3 +1,13 @@
+# 3.3.0 (2026-09-27)
+
+## Features
+
+- New world setting, **Variant: Player Mechs Survive at 0 Structure/Stress** (off by default), for rules like Утопия. Player mechs aren't destroyed at 0 structure or stress. They keep rolling the structure damage and overheating tables, and each hit taken past 0 adds a die. The chat card shows remaining structure/stress below 0, and repairs reset it. NPCs are unaffected.
+
+## Release Workflow
+
+- The release workflow checks the tag against the `system.json` version (it compared the tag with itself), and can be run manually.
+
 # 3.2.0 (2026-09-27)
 
 First release of this fork. It supports Foundry VTT v14 only.
