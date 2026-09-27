@@ -512,13 +512,12 @@ export function convertBonus(item: LancerItem, name: string, bonus: BonusData) {
   // Attempt to replace special keys in bonus values. Supported keys are {ll} and {grit}. These
   // require the item to belong to either a pilot or an active mech.
   let value = bonus.val;
-  if (value.includes("{ll}")) {
-    const ll = `${owner?.is_pilot() || owner?.is_mech() ? owner.system.level : 0}`;
-    value = value.replace("{ll}", ll);
-  }
-  if (value.includes("{grit}")) {
-    const grit = `${owner?.is_pilot() || owner?.is_mech() ? owner.system.grit : 0}`;
-    value = value.replace("{grit}", grit);
+  if (value.includes("{ll}") || value.includes("{grit}")) {
+    // A mech only receives its pilot's level through the pilot's passdown effects, which are applied in the
+    // same pass as these bonuses, so read it from the pilot directly.
+    const pilot = owner?.is_mech() ? (owner.system.pilot?.value as LancerActor | null | undefined) : owner;
+    const ll = pilot?.is_pilot() ? pilot.system.level : owner?.is_mech() ? owner.system.level : 0;
+    value = value.replaceAll("{ll}", `${ll}`).replaceAll("{grit}", `${Math.ceil(ll / 2)}`);
   }
   // Convert formulas to a single value
   if (value.includes("-") || value.includes("+")) {
