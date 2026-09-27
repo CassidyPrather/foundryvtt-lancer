@@ -56,31 +56,16 @@ export async function createChatMessageStep(
     flags: flags ? { lancer: flags } : undefined,
   };
 
-  const rollMode = game.settings.get("core", "rollMode");
-  // v14 replaced the legacy CONST.DICE_ROLL_MODES values ("blindroll", "gmroll", ...) with the
-  // CONFIG.ChatMessage.modes keys ("blind", "gm", ...). Accept both: which form the setting hands
-  // back is not something we can rely on.
-  const ROLL_MODE_KEYS: Record<string, string> = {
-    blind: "blind",
-    blindroll: "blind",
-    gm: "gm",
-    gmroll: "gm",
-    self: "self",
-    selfroll: "self",
-  };
-  // Take the label from CONFIG rather than from CHAT.RollBlind / CHAT.RollPrivate / CHAT.RollSelf.
-  // v14 no longer ships those keys, so localizing them returned the key itself and the card showed
-  // "CHAT.RollBlind" where the mode name belonged.
-  // fvtt-types has no v14 release, so `modes` is missing from its CONFIG.ChatMessage definition.
-  // Describe just the part we read; drop the cast once the types catch up.
+  // v14 replaced roll modes with message modes. The deprecated `core.rollMode` setting can read back
+  // as null, so read `core.messageMode` (the value the chat controls set) directly.
+  // fvtt-types has no v14 release, so describe just the parts of the v14 API we use.
+  const messageMode = String(game.settings.get("core", "messageMode" as any) ?? "public");
   const chatModes = (CONFIG.ChatMessage as unknown as { modes?: Record<string, { label: string }> }).modes;
-  const modeKey = ROLL_MODE_KEYS[String(rollMode)];
-  const modeLabel = modeKey ? chatModes?.[modeKey]?.label : undefined;
+  // Label non-public cards with the same string the chat controls show, e.g. "Blind to Gamemasters"
+  const modeLabel = ["gm", "blind", "self"].includes(messageMode) ? chatModes?.[messageMode]?.label : undefined;
   if (modeLabel) chat_data.flavor = game.i18n.localize(modeLabel);
   // Respect the chat visibility setting
-  // NOTE: v14 renames this to ChatMessage.applyMode; applyRollMode still works in v14
-  // (deprecated, removed in v15). Switch once fvtt-types ships v14 definitions.
-  ChatMessage.applyRollMode(chat_data, rollMode);
+  (ChatMessage as unknown as { applyMode(data: object, mode: string): object }).applyMode(chat_data, messageMode);
 
   if (!rolls) delete chat_data.rolls;
   const cm = await ChatMessage.implementation.create(chat_data);
