@@ -59,12 +59,18 @@ async function printGenericHTML(state: FlowState<LancerFlowState.HTMLToChatData>
         description: (state.item.system as any).description ?? "", // Licenses don't have a description
         tags: (state.item.system as any).tags ?? undefined, // Frames don't have tags
       };
-      state.data.html = await renderTemplate(`systems/${game.system.id}/templates/chat/generic-card.hbs`, templateData);
+      state.data.html = await foundry.applications.handlebars.renderTemplate(
+        `systems/${game.system.id}/templates/chat/generic-card.hbs`,
+        templateData
+      );
     } else if (state.actor) {
       const templateData = {
         title: state.actor.name,
       };
-      state.data.html = await renderTemplate(`systems/${game.system.id}/templates/chat/generic-card.hbs`, templateData);
+      state.data.html = await foundry.applications.handlebars.renderTemplate(
+        `systems/${game.system.id}/templates/chat/generic-card.hbs`,
+        templateData
+      );
     }
   }
   createChatMessageStep(state.actor, state.data.html);

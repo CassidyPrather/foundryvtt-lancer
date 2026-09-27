@@ -39,7 +39,10 @@ async function initializeStabilize(state: FlowState<LancerFlowState.StabilizeDat
 async function renderStabilizePrompt(state: FlowState<LancerFlowState.StabilizeData>): Promise<boolean> {
   if (!state.data) throw new TypeError(`Stabilize flow state data missing!`);
   const actor = state.actor;
-  let template = await renderTemplate(`systems/${game.system.id}/templates/window/promptStabilize.hbs`, {});
+  let template = await foundry.applications.handlebars.renderTemplate(
+    `systems/${game.system.id}/templates/window/promptStabilize.hbs`,
+    {}
+  );
 
   let submit: boolean | null = null;
 
