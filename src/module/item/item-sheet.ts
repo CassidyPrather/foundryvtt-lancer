@@ -1,7 +1,7 @@
 import type { LancerItemSheetData } from "../interfaces";
 import { LANCER } from "../config";
 import type { LancerItem, LancerItemType } from "./lancer-item";
-import { handleGenControls, handlePopoutTextEditor } from "../helpers/commons";
+import { enrichTextFields, handleGenControls, handlePopoutTextEditor } from "../helpers/commons";
 import { handleCounterInteraction, handleInputPlusMinusButtons } from "../helpers/item";
 import {
   handleRefDragging,
@@ -191,6 +191,17 @@ export class LancerItemSheet<T extends LancerItemType> extends foundry.appv1.she
         data.system.lid = `status-${data.document.id}`;
       }
     }
+
+    const profileFields = ["description", "effect", "on_attack", "on_hit", "on_crit"];
+    const profilePaths = this.item.is_mech_weapon()
+      ? (this.item.system.profiles as unknown[]).flatMap((_: unknown, i: number) =>
+          profileFields.map(f => `system.profiles.${i}.${f}`)
+        )
+      : [];
+    (data as any).enriched = await enrichTextFields(this.item, [
+      ...["description", "effect", "effects", "flavor", "tactics", "trigger"].map(f => `system.${f}`),
+      ...profilePaths,
+    ]);
 
     console.log(`${lp} Rendering with following item ctx: `, data);
     return data;

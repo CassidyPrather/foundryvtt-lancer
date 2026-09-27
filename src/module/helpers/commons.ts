@@ -877,9 +877,29 @@ export function safe_html_helper(orig: string) {
   return orig || defaultPlaceholder;
 }
 
+/**
+ * Enrich the rich-text fields a sheet shows with {{textarea-card}}, so document links, inline rolls and
+ * other enrichers render. Enrichment is async, so sheets do it in getData and the helper picks the result
+ * up from the render context's `enriched` map.
+ * @param doc   The actor or item whose fields to enrich
+ * @param paths Dot paths of the text fields, as passed to {{textarea-card}}
+ */
+export async function enrichTextFields(doc: any, paths: string[]): Promise<Record<string, string>> {
+  const enriched: Record<string, string> = {};
+  for (const path of paths) {
+    const raw = foundry.utils.getProperty(doc, path);
+    if (typeof raw !== "string" || !raw.trim()) continue;
+    enriched[path] = await foundry.applications.ux.TextEditor.implementation.enrichHTML(raw, {
+      secrets: doc.isOwner,
+      relativeTo: doc,
+    });
+  }
+  return enriched;
+}
+
 // These typically are the exact same so we made a helper for 'em
 export function large_textbox_card(title: string, text_path: string, options: HelperOptions) {
-  let resolved = resolveHelperDotpath(options, text_path, "");
+  let resolved = options.data?.root?.enriched?.[text_path] ?? resolveHelperDotpath(options, text_path, "");
   return `
   <div class="card full clipped">
     <div class="lancer-header lancer-primary">

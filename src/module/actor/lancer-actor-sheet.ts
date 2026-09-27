@@ -8,7 +8,7 @@ import { LancerFlowState } from "../flows/interfaces";
 import { beginItemChatFlow } from "../flows/item";
 import { ScanFlow } from "../flows/scan";
 import { CollapseHandler, applyCollapseListeners, initializeCollapses } from "../helpers/collapse";
-import { handleGenControls, handlePopoutTextEditor } from "../helpers/commons";
+import { enrichTextFields, handleGenControls, handlePopoutTextEditor } from "../helpers/commons";
 import {
   DroppableFlowType,
   type LancerFlowDropData,
@@ -599,6 +599,7 @@ export class LancerActorSheet<T extends LancerActorType> extends foundry.appv1.s
     }
     data.effect_categories = LancerActiveEffect.prepareActiveEffectCategories(this.actor);
     data.deployables = lookupOwnedDeployables(this.actor);
+    data.enriched = await enrichTextFields(this.actor, ["system.notes", "system.history", "system.detail"]);
     console.log(`${lp} Rendering with following actor ctx: `, data);
     return data;
   }
