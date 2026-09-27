@@ -40,7 +40,6 @@ export const preloadTemplates = async function () {
     `systems/${game.system.id}/templates/window/action_manager.hbs`,
     `systems/${game.system.id}/templates/window/bonus.hbs`,
     `systems/${game.system.id}/templates/window/counter.hbs`,
-    `systems/${game.system.id}/templates/window/html_editor.hbs`,
     `systems/${game.system.id}/templates/window/inventory.hbs`,
     `systems/${game.system.id}/templates/window/tag.hbs`,
   ];
