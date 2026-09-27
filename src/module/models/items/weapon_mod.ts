@@ -68,6 +68,15 @@ export function unpackWeaponMod(
   system: Item.CreateData;
 } {
   const { deployables, tags } = addDeployableTags(data.deployables, data.tags, context);
+  // lancer-data lists what a mod allows and what it excludes; exclusions override the allowed lists
+  const allowed_sizes = makeWeaponSizeChecklist(data.allowed_sizes ?? []);
+  for (const size of data.restricted_sizes ?? []) {
+    if (size in allowed_sizes) allowed_sizes[size as keyof typeof allowed_sizes] = false;
+  }
+  const allowed_types = makeWeaponTypeChecklist(data.allowed_types ?? []);
+  for (const type of data.restricted_types ?? []) {
+    if (type in allowed_types) allowed_types[type as keyof typeof allowed_types] = false;
+  }
   return {
     name: data.name,
     type: EntryType.WEAPON_MOD,
@@ -92,8 +101,8 @@ export function unpackWeaponMod(
       added_damage: data.added_damage?.map(unpackDamage),
       added_range: data.added_range?.map(unpackRange),
       added_tags: data.added_tags?.map(unpackTag),
-      allowed_sizes: makeWeaponSizeChecklist(data.allowed_sizes ?? []),
-      allowed_types: makeWeaponTypeChecklist(data.allowed_types ?? []),
+      allowed_sizes,
+      allowed_types,
     },
   };
 }
