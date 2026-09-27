@@ -253,6 +253,11 @@
       "name": "Floating Damage Numbers",
       "hint": "Enable floating damage numbers for changes to stats, including applying damage rolls. This setting is separate for each client."
     },
+    "pcSurviveZeroStruss": {
+      "name": "Variant: Player Mechs Survive at 0 Structure/Stress",
+      "hint": "Player mechs are not destroyed at 0 structure or stress. They keep rolling the structure damage and overheating tables, adding a die for each hit past 0. NPCs are unaffected.",
+      "note": "Variant rule: this mech survives, and keeps rolling on the table below 0."
+    },
     "simpleFonts": {
       "name": "Use Simple/Plain Fonts",
       "hint": "Replace stylized sci-fi header fonts with Helvetica for legibility. This setting is separate for each client."

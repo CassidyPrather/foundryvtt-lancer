@@ -19,6 +19,7 @@ import { LoadoutHelper } from "./loadout-util";
 import { StrussHelper } from "./struss-util";
 import { StructureFlow } from "../flows/structure";
 import { OverheatFlow } from "../flows/overheat";
+import { resetStrussOverflowOnRepair } from "../flows/struss-variant";
 import { BasicAttackFlow } from "../flows/attack";
 import { npcInnateEffects, pilotInnateEffects } from "../effects/converter";
 import { TechAttackFlow } from "../flows/tech";
@@ -588,6 +589,7 @@ export class LancerActor<SubType extends Actor.SubType = Actor.SubType> extends 
     const allowed = await super._preUpdate(data, options, user);
     if (allowed === false) return false;
     this.statChangeScrollingText(data);
+    resetStrussOverflowOnRepair(this, data);
   }
 
   /** @override

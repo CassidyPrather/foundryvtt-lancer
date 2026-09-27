@@ -45,6 +45,16 @@ export const registerSettings = function () {
     default: {},
   });
 
+  // Variant rule, e.g. for Утопия: player mechs survive at 0 structure/stress
+  game.settings.register(game.system.id, LANCER.setting_pc_survive_zero_struss, {
+    name: "lancer.pcSurviveZeroStruss.name",
+    hint: "lancer.pcSurviveZeroStruss.hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false,
+  });
+
   game.settings.register(game.system.id, LANCER.setting_floating_damage_numbers, {
     name: "lancer.floatingDamageNumbers.name",
     hint: "lancer.floatingDamageNumbers.hint",

@@ -3,6 +3,7 @@ import { LancerActor } from "../actor/lancer-actor";
 import { LANCER } from "../config";
 import type { UUIDRef } from "../source-template";
 import { keepLegendaryRollWithFewestOnes, userOwnsActor } from "../util/misc";
+import { effectiveStruss, strussOverflow, strussOverflowKey, surviveNote, survivesZeroStruss } from "./struss-variant";
 import { renderTemplateStep } from "./_render";
 import { Flow, type FlowState, type Step } from "./flow";
 import { LancerFlowState } from "./interfaces";
@@ -94,6 +95,12 @@ export async function preStructureRollChecks(
       await actor.update({
         "system.structure": structure.value - 1,
         "system.hp": hp.value + hp.max,
+      });
+    } else if (hp.value < 1 && survivesZeroStruss(actor)) {
+      // Variant rule: a player mech at 0 structure keeps taking structure damage, counted as hits past 0
+      await actor.update({
+        "system.hp": hp.value + hp.max,
+        [strussOverflowKey("structure")]: strussOverflow(actor, "structure") + 1,
       });
     } else {
       return false;
@@ -201,7 +208,11 @@ export async function rollStructureTable(state: FlowState<LancerFlowState.Primar
     return false;
   }
 
-  let remStruct = state.data?.reroll_data?.structure ?? actor.system.structure.value;
+  const survives = survivesZeroStruss(actor);
+  // Under the survival variant, hits past 0 count as negative structure and each adds a die
+  let remStruct =
+    state.data?.reroll_data?.structure ??
+    (survives ? effectiveStruss(actor, "structure") : actor.system.structure.value);
   let damage = actor.system.structure.max - remStruct;
   let formula = `${damage}d6kl1`;
   // If it's an NPC with legendary, change the formula to roll twice and keep the best result.
@@ -219,7 +230,8 @@ export async function rollStructureTable(state: FlowState<LancerFlowState.Primar
 
   // If the result indicates the mech should be destroyed, set the remaining structure to 0.
   // Also subtract the hp which was added in the preStructureRollChecks step.
-  if (result === 0 || (result === 1 && remStruct <= 1)) {
+  const wouldBeDestroyed = result === 0 || (result === 1 && remStruct <= 1);
+  if (wouldBeDestroyed && !survives) {
     await actor.update({
       "system.hp.value": actor.system.hp.value - actor.system.hp.max,
       "system.structure.value": 0,
@@ -232,9 +244,13 @@ export async function rollStructureTable(state: FlowState<LancerFlowState.Primar
   state.data = {
     type: "structure",
     title: isMonstrosity ? monstrosityTableTitles[result] : structTableTitles[result],
-    desc: isMonstrosity ? monstrosityTableDescriptions(result, remStruct) : structTableDescriptions(result, remStruct),
+    desc:
+      (isMonstrosity
+        ? game.i18n.localize(monstrosityTableDescriptions(result, Math.max(remStruct, 0)))
+        : game.i18n.localize(structTableDescriptions(result, Math.max(remStruct, 0)))) +
+      (wouldBeDestroyed && survives ? surviveNote() : ""),
     remStruct: remStruct,
-    val: actor.system.structure.value,
+    val: survives ? remStruct : actor.system.structure.value,
     max: actor.system.structure.max,
     roll_str: roll.formula,
     result: {
@@ -261,8 +277,8 @@ export async function noStructureRemaining(
     return false;
   }
 
-  if (state.data.remStruct > 0) {
-    // The mech is intact, we don't need to do anything in this step.
+  if (state.data.remStruct > 0 || survivesZeroStruss(actor)) {
+    // The mech is intact (or survives under the variant rule), we don't need to do anything in this step.
     return true;
   }
 
@@ -323,10 +339,14 @@ export async function checkStructureMultipleOnes(
     }
     state.data.title = game.i18n.localize(state.data.title);
     state.data.desc = game.i18n.localize(state.data.desc);
-    await actor.update({
-      "system.hp.value": actor.system.hp.value - actor.system.hp.max,
-      "system.structure.value": 0,
-    });
+    if (survivesZeroStruss(actor)) {
+      state.data.desc += surviveNote();
+    } else {
+      await actor.update({
+        "system.hp.value": actor.system.hp.value - actor.system.hp.max,
+        "system.structure.value": 0,
+      });
+    }
   }
 
   return true;
@@ -597,10 +617,11 @@ export function triggerStrussFlow(actor: LancerActor, changed: unknown) {
     (actor.is_mech() || actor.is_npc())
   ) {
     const data = changed as any; // DeepPartial<RegMechData | RegNpcData>;
-    if ((data.system?.heat?.value ?? 0) > actor.system.heat.max && actor.system.stress.value > 0) {
+    const survives = survivesZeroStruss(actor);
+    if ((data.system?.heat?.value ?? 0) > actor.system.heat.max && (actor.system.stress.value > 0 || survives)) {
       actor.beginOverheatFlow();
     }
-    if ((data.system?.hp?.value ?? 1) <= 0 && actor.system.structure.value > 0) {
+    if ((data.system?.hp?.value ?? 1) <= 0 && (actor.system.structure.value > 0 || survives)) {
       actor.beginStructureFlow();
     }
   }

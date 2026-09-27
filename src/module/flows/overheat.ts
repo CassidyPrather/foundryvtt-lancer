@@ -6,6 +6,7 @@ import { renderTemplateStep } from "./_render";
 import { Flow, type FlowState, type Step } from "./flow";
 import { LancerFlowState } from "./interfaces";
 import { keepLegendaryRollWithFewestOnes } from "../util/misc";
+import { effectiveStruss, strussOverflow, strussOverflowKey, surviveNote, survivesZeroStruss } from "./struss-variant";
 
 const lp = LANCER.log_prefix;
 
@@ -86,6 +87,12 @@ export async function preOverheatRollChecks(state: FlowState<LancerFlowState.Ove
         "system.stress": stress.value - 1,
         "system.heat": heat.value - actor.system.heat.max,
       });
+    } else if (heat.value > actor.system.heat.max && survivesZeroStruss(actor)) {
+      // Variant rule: a player mech at 0 stress keeps overheating, counted as hits past 0
+      await actor.update({
+        "system.heat": heat.value - actor.system.heat.max,
+        [strussOverflowKey("stress")]: strussOverflow(actor, "stress") + 1,
+      });
     } else {
       return false;
     }
@@ -162,7 +169,10 @@ export async function rollOverheatTable(state: FlowState<LancerFlowState.Overhea
     return false;
   }
 
-  let remStress = state.data?.reroll_data?.stress ?? actor.system.stress.value;
+  const survives = survivesZeroStruss(actor);
+  // Under the survival variant, hits past 0 count as negative stress and each adds a die
+  let remStress =
+    state.data?.reroll_data?.stress ?? (survives ? effectiveStruss(actor, "stress") : actor.system.stress.value);
   let damage = actor.system.stress.max - remStress;
   let formula = `${damage}d6kl1`;
   // If it's an NPC with legendary, change the formula to roll twice and keep the best result.
@@ -178,12 +188,15 @@ export async function rollOverheatTable(state: FlowState<LancerFlowState.Overhea
   let result = roll.total;
   if (result === undefined) return false;
 
+  const meltdown = result === 1 && remStress <= 1;
   state.data = {
     type: "overheat",
     title: overheatTableTitles[result],
-    desc: overheatTableDescriptions(result, remStress),
+    desc:
+      game.i18n.localize(overheatTableDescriptions(result, Math.max(remStress, 0))) +
+      (meltdown && survives ? surviveNote() : ""),
     remStress: remStress,
-    val: actor.system.stress.value,
+    val: survives ? remStress : actor.system.stress.value,
     max: actor.system.stress.max,
     roll_str: roll.formula,
     result: {
@@ -208,6 +221,8 @@ export async function noStressRemaining(state: FlowState<LancerFlowState.Overhea
     return false;
   }
 
+  // Under the survival variant, player mechs keep rolling the overheating table below 0 stress
+  if (survivesZeroStruss(actor)) return true;
   if (state.data.remStress > 0) {
     // The mech is intact, we don't need to do anything in this step if it's not a 1-stress NPC.
     if (!actor.is_npc() || actor.system.stress.max > 1) return true;
@@ -259,6 +274,7 @@ export async function checkOverheatMultipleOnes(state: FlowState<LancerFlowState
   if (one_count > 1) {
     state.data.title = overheatTableTitles[0];
     state.data.desc = overheatTableDescriptions(roll.total ?? 1, 1);
+    if (survivesZeroStruss(actor)) state.data.desc = game.i18n.localize(state.data.desc) + surviveNote();
   }
 
   return true;

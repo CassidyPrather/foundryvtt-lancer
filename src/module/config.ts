@@ -59,6 +59,7 @@ export const LANCER = {
   setting_square_grid_diagonals: "squareGridDiagonals",
   setting_tag_config: "tagConfig",
   setting_simple_fonts: "simpleFonts",
+  setting_pc_survive_zero_struss: "pcSurviveZeroStruss",
   // setting_120: "warningFor120", // Old setting, currently unused.
   // setting_beta_warning: "warningForBeta", // Old setting, currently unused.
 } as const;

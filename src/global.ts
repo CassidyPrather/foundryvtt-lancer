@@ -154,6 +154,7 @@ declare module "fvtt-types/configuration" {
     "lancer.hideWelcome": boolean;
     "lancer.installedLCPs": { index: IContentPackManifest[] };
     "lancer.keepStockIcons": boolean;
+    "lancer.pcSurviveZeroStruss": boolean;
     "lancer.squareGridDiagonals": "111" | "121" | "222" | "euc";
     "lancer.statusIconConfig": typeof StatusIconConfigOptions;
     "lancer.systemMigrationVersion": string;
