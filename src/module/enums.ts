@@ -585,3 +585,18 @@ export function makeSystemTypeChecklist(types: SystemType[]): SystemTypeChecklis
 export function flattenSystemTypeChecklist(types: SystemTypeChecklist): SystemType[] {
   return Object.keys(types).filter(t => types[t as keyof SystemTypeChecklist]) as SystemType[];
 }
+
+/**
+ * Numeric ActiveEffect change modes, mirroring the values of the deprecated CONST.ACTIVE_EFFECT_MODES.
+ * Foundry v14 warns (and builds a stack trace) on every access to that constant, and effects are
+ * rebuilt on each actor data preparation, so we keep our own copy. Core still migrates numeric
+ * modes on change data to the v14 string change types.
+ */
+export const AE_MODES = Object.freeze({
+  CUSTOM: 0 as CONST.ACTIVE_EFFECT_MODES,
+  MULTIPLY: 1 as CONST.ACTIVE_EFFECT_MODES,
+  ADD: 2 as CONST.ACTIVE_EFFECT_MODES,
+  DOWNGRADE: 3 as CONST.ACTIVE_EFFECT_MODES,
+  UPGRADE: 4 as CONST.ACTIVE_EFFECT_MODES,
+  OVERRIDE: 5 as CONST.ACTIVE_EFFECT_MODES,
+});

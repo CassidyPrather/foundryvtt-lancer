@@ -1,5 +1,5 @@
 import type { DeepPartial } from "fvtt-types/utils";
-import { EntryType } from "../../enums";
+import { AE_MODES, EntryType } from "../../enums";
 import { restrict_choices } from "../../helpers/commons";
 import type { SourceData } from "../../source-template";
 import type { BaseData } from "../../base-data";
@@ -54,7 +54,7 @@ export function generateStunnedEffect({ name = "Stunned", description = "" }): P
     changes: [
       {
         key: "system.evasion",
-        mode: CONST.ACTIVE_EFFECT_MODES.OVERRIDE,
+        mode: AE_MODES.OVERRIDE,
         priority: null,
         value: "5",
       },
