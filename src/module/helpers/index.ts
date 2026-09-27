@@ -120,6 +120,16 @@ export function registerHandlebarsHelpers() {
     return resolveHelperDotpath(options, path);
   });
 
+  // select, marks the <option> matching the given value as selected. Foundry v14 removed its core
+  // {{#select}} block helper, which our frame, NPC feature and combat tracker config templates use.
+  if (!Handlebars.helpers.select) {
+    Handlebars.registerHelper("select", function (this: any, selected: unknown, options: HelperOptions) {
+      const value = Handlebars.escapeExpression(String(selected ?? "")).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const rgx = new RegExp(` value=["']${value}["']`);
+      return options.fn(this).replace(rgx, "$& selected");
+    });
+  }
+
   // get-set, to resolve situations wherein we read and write to the same path via "value" and "name" element properties
   Handlebars.registerHelper("getset", function (path: string, options: HelperOptions) {
     let value = resolveHelperDotpath(options, path);
