@@ -174,7 +174,8 @@ export function unpackMechWeapon(
       cost: prof.cost ?? 1,
       barrageable,
       skirmishable,
-      actions: prof.actions?.map(unpackAction),
+      // Without profiles the whole weapon is the profile, and its actions are kept on the weapon itself
+      actions: hasProfiles ? prof.actions?.map(unpackAction) : [],
       bonuses: prof.bonuses?.map(unpackBonus),
       counters: prof.counters?.map(unpackCounter),
       description: prof.description ?? data.description,
