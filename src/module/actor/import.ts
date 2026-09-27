@@ -761,6 +761,8 @@ export async function importCCv3(
         const newMech = await createNewMech(importedMech);
         if (newMech) mech = newMech;
       }
+      // createNewMech already recorded why this mech could not be created
+      if (!mech) continue;
       if (!mech.canUserModify(game.user!, "update")) {
         ui.notifications!.warn(
           `Could not import mech '${importedMech.name}' as you lack the permission to update the actor. Please ask your GM for assistance.`,
@@ -777,20 +779,22 @@ export async function importCCv3(
       const populatedSystems: string[] = [];
 
       // Mech Frame
-      const compendiumFrame = (await getOrCreateActorItemByLid(
+      let compendiumFrame = (await getOrCreateActorItemByLid(
         importedMech.frame,
         mech,
         mechItemPool,
         _missingItems
       )) as LancerFRAME | null;
       if (!compendiumFrame) {
-        await mech.createEmbeddedDocuments("Item", [
+        // Fall back to the frame data embedded in the COMP/CON export, and equip it
+        const [createdFrame] = await mech.createEmbeddedDocuments("Item", [
           {
             ...unpackFrame(importedMech.frameData, _context),
             type: EntryType.FRAME,
             name: importedMech.frameData.name,
           },
         ]);
+        compendiumFrame = (createdFrame as unknown as LancerFRAME | undefined) ?? null;
       }
 
       // Mech Systems
@@ -973,7 +977,7 @@ export async function importCCv3(
     pilot.effectHelper.propagateEffects(true);
     // Reset current data and render all
     pilot.render();
-    ui.notifications!.info("Successfully loaded pilot new state.");
+    reportImportResult(pilot, _missingActors, _missingItems);
   } catch (e) {
     console.warn(e);
     ui.notifications!.warn(`Failed to update pilot: ${e instanceof Error ? e.message : e}`, { permanent: true });
@@ -1503,45 +1507,56 @@ export async function importCCv2(pilot: LancerPILOT, data: PackedPilotData, clea
 
     // Reset curr data and render all
     pilot.render();
-    if (missingItems.length || missingActors.length) {
-      let message = `Partially loaded '${pilot.name}'s new state.`;
-      if (missingActors.length) {
-        message += ` ${missingActors.length} actors could not be created/updated.`;
-      }
-      if (missingItems.length) {
-        message += ` ${missingItems.length} items could not be found.`;
-      }
-      message += ` See dialog for details.`;
-      ui.notifications!.warn(message, { permanent: true });
-      console.warn(`${lp} Some actors and/or items were missed during pilot import:`, missingActors, missingItems);
-
-      let content = "";
-      if (missingActors.length) {
-        content += `<div><span>The following Actors could not be created or updated:</span>
-        <ul>${missingActors.map(i => `<li>${i.name} - ${i.lid}</li>`).join("")}</ul></div>`;
-      }
-      if (missingItems.length) {
-        content += `<div><span>The following Items were not found in the compendium and could not be imported:</span>
-        <ul>${missingItems.map(i => `<li>${i.actor} - ${i.lid}</li>`).join("")}</ul>
-        <span>Import all necessary LCPs first using the <b>Lancer Compendium Manager</b>.</span></div>`;
-      }
-      new foundry.applications.api.DialogV2({
-        window: { title: `Incomplete Pilot Import`, icon: "fas fa-triangle-exclamation" },
-        content,
-        buttons: [
-          {
-            action: "close",
-            icon: "fas fa-check",
-            label: "Close",
-            default: true,
-          },
-        ],
-      }).render(true);
-    } else {
-      ui.notifications!.info("Successfully loaded pilot new state.");
-    }
+    reportImportResult(pilot, missingActors, missingItems);
   } catch (e) {
     console.warn(e);
     ui.notifications!.warn(`Failed to update pilot: ${e instanceof Error ? e.message : e}`, { permanent: true });
+  }
+}
+
+/**
+ * Tell the user how a pilot import went, listing any actors or items that could not be imported.
+ */
+function reportImportResult(
+  pilot: LancerPILOT,
+  missingActors: { name: string; lid: string }[],
+  missingItems: { actor: string; lid: string }[]
+) {
+  if (missingItems.length || missingActors.length) {
+    let message = `Partially loaded '${pilot.name}'s new state.`;
+    if (missingActors.length) {
+      message += ` ${missingActors.length} actors could not be created/updated.`;
+    }
+    if (missingItems.length) {
+      message += ` ${missingItems.length} items could not be found.`;
+    }
+    message += ` See dialog for details.`;
+    ui.notifications!.warn(message, { permanent: true });
+    console.warn(`${lp} Some actors and/or items were missed during pilot import:`, missingActors, missingItems);
+
+    let content = "";
+    if (missingActors.length) {
+      content += `<div><span>The following Actors could not be created or updated:</span>
+      <ul>${missingActors.map(i => `<li>${i.name} - ${i.lid}</li>`).join("")}</ul></div>`;
+    }
+    if (missingItems.length) {
+      content += `<div><span>The following Items were not found in the compendium and could not be imported:</span>
+      <ul>${missingItems.map(i => `<li>${i.actor} - ${i.lid}</li>`).join("")}</ul>
+      <span>Import all necessary LCPs first using the <b>Lancer Compendium Manager</b>.</span></div>`;
+    }
+    new foundry.applications.api.DialogV2({
+      window: { title: `Incomplete Pilot Import`, icon: "fas fa-triangle-exclamation" },
+      content,
+      buttons: [
+        {
+          action: "close",
+          icon: "fas fa-check",
+          label: "Close",
+          default: true,
+        },
+      ],
+    }).render(true);
+  } else {
+    ui.notifications!.info("Successfully loaded pilot new state.");
   }
 }
