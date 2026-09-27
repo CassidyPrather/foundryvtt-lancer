@@ -231,7 +231,8 @@ export class LancerPilotSheet extends LancerActorSheet<EntryType.PILOT> {
         }
       } else if (drop.document.is_pilot_gear()) {
         // If new gear, try to equip to first empty slot / first post slot
-        for (let i = 0; i < loadout.gear.length || i <= 3; i++) {
+        // 3 base gear slots, plus 2 from an Extended Harness
+        for (let i = 0; i < loadout.gear.length || i <= 4; i++) {
           if (!loadout.gear[i]) {
             await pilot.update({
               [`system.loadout.gear.${i}`]: drop.document.id,
