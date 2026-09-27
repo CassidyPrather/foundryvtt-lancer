@@ -215,7 +215,7 @@ export class LancerItem<out SubType extends Item.SubType = Item.SubType> extends
     if (this.is_mech_weapon()) {
       // Add mod bonuses to all profiles
       for (let profile of this.system.profiles) {
-        if (this.system.mod) {
+        if (this.system.mod && !this.system.mod.system.destroyed) {
           profile.bonus_damage.push(...this.system.mod.system.added_damage);
           profile.bonus_range.push(...this.system.mod.system.added_range);
           profile.bonus_tags.push(...this.system.mod.system.added_tags);
