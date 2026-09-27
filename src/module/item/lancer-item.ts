@@ -373,6 +373,22 @@ export class LancerItem<out SubType extends Item.SubType = Item.SubType> extends
     const allowed = await super._preCreate(data, options, user);
     if (allowed === false) return false;
 
+    // A duplicated NPC feature, class or template is a new item and needs its own lid; otherwise classes and
+    // templates that list it by lid resolve to the original instead.
+    const npcTypes: string[] = [EntryType.NPC_FEATURE, EntryType.NPC_CLASS, EntryType.NPC_TEMPLATE];
+    if (
+      (data?._stats as { duplicateSource?: string } | undefined)?.duplicateSource &&
+      !this.parent &&
+      npcTypes.includes(this.type)
+    ) {
+      this.updateSource({
+        system: {
+          lid: `${generateItemID(EntryTypeLidPrefix(this.type as EntryType), data.name ?? this.name)}-${randomString(8)}`,
+        },
+      });
+      return;
+    }
+
     // Only apply these defaults for fresh documents
     if (data?._stats?.createdTime) return;
 
