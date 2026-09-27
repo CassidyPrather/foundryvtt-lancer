@@ -164,7 +164,9 @@ async function updateMech(
       texture: {
         src: replaceDefaultResource(
           mech.prototypeToken?.texture?.src,
-          data.img.cloud_portrait,
+          data.img?.cloud_portrait ?? null,
+          data.img?.portrait ?? null,
+          data.portrait,
           frame ? frameToPath(frame.name) : null
         ),
       },
@@ -1399,6 +1401,7 @@ export async function importCCv2(pilot: LancerPILOT, data: PackedPilotData, clea
           "texture.src": replaceDefaultResource(
             mech.prototypeToken?.texture?.src,
             cloudMech.cloud_portrait,
+            cloudMech.portrait,
             frame ? frameToPath(frame.name) : null
           ),
         },
