@@ -1706,11 +1706,30 @@ function _handleContextMenus(
       let dd_ = dd(html);
       if (dd_) {
         let change = array_path_edit_changes(dd_.sub_doc, dd_.sub_path, null, "delete");
-        dd_.sub_doc.update({ [change.path]: change.new_val });
+        const updates: Record<string, unknown> = { [change.path]: change.new_val };
+        // Keep a weapon's selected profile pointing at a profile that still exists
+        const removedProfile = /^system\.profiles\.(\d+)$/.exec(dd_.sub_path);
+        if (removedProfile && dd_.sub_doc instanceof LancerItem && dd_.sub_doc.is_mech_weapon()) {
+          const removed = Number(removedProfile[1]);
+          const selected = dd_.sub_doc.system.selected_profile_index;
+          const remaining = (change.new_val as unknown[]).length;
+          updates["system.selected_profile_index"] =
+            removed < selected ? selected - 1 : Math.max(0, Math.min(selected, remaining - 1));
+        }
+        dd_.sub_doc.update(updates);
       }
     },
     condition: html => {
       let p = path(html);
+      // A mech weapon must keep at least one profile
+      const dd_ = dd(html);
+      if (
+        p?.substring(0, p.length - 2).endsWith("profiles") &&
+        dd_?.sub_doc instanceof LancerItem &&
+        dd_.sub_doc.is_mech_weapon() &&
+        dd_.sub_doc.system.profiles.length <= 1
+      )
+        return false;
       return !!(
         !view_only &&
         ((!p?.includes("system.loadout") &&

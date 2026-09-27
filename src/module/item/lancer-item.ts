@@ -72,8 +72,7 @@ export class LancerItem<out SubType extends Item.SubType = Item.SubType> extends
     const filter = new Set(types);
     switch (self.type) {
       case EntryType.MECH_WEAPON:
-        const p = self.system.selected_profile_index;
-        return self.system.profiles[p].range.filter(r => filter.has(r.type));
+        return (self.system.active_profile?.range ?? []).filter(r => filter.has(r.type));
       case EntryType.PILOT_WEAPON:
         return self.system.range.filter(r => filter.has(r.type));
       case EntryType.NPC_FEATURE:
@@ -90,7 +89,8 @@ export class LancerItem<out SubType extends Item.SubType = Item.SubType> extends
       range: [],
     };
     if (this.is_mech_weapon()) {
-      const profile = this.system.profiles[this.system.selected_profile_index];
+      const profile = this.system.active_profile;
+      if (!profile) return result;
       result.type = profile.type || null;
       result.range.push(...profile.range);
       result.damage = result.damage ?? [];
@@ -346,8 +346,8 @@ export class LancerItem<out SubType extends Item.SubType = Item.SubType> extends
       case EntryType.MECH_WEAPON:
         let tamw = this as unknown as LancerMECH_WEAPON;
         bonus_groups.push({
-          group: tamw.system.active_profile.name || tamw.system.active_profile?.name,
-          bonuses: tamw.system.active_profile.bonuses,
+          group: tamw.system.active_profile?.name,
+          bonuses: tamw.system.active_profile?.bonuses ?? [],
         });
         break;
     } // Nothing else needs particular care
