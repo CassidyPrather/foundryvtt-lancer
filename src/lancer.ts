@@ -458,9 +458,12 @@ Hooks.on("updateCombat", (_combat, changes) => {
     "turn" in changes &&
     game.user?.isGM
   ) {
-    canvas?.templates?.placeables.forEach(t => {
-      if (t.document.getFlag("lancer", "isAttack")) t.document.delete();
-    });
+    // Attack templates are Regions since v14
+    const attackRegions =
+      canvas?.scene?.regions
+        .filter((r: RegionDocument.Implementation) => !!r.getFlag("lancer", "isAttack"))
+        .map((r: RegionDocument.Implementation) => r.id!) ?? [];
+    if (attackRegions.length) canvas!.scene!.deleteEmbeddedDocuments("Region", attackRegions);
   }
   // This can be removed in v10
   if (foundry.utils.hasProperty(changes, "turn")) {

@@ -1,13 +1,22 @@
-/**
- * A port of the spell template feature from DnD5e
- * https://gitlab.com/foundrynet/dnd5e/-/blob/master/module/pixi/ability-template.js
- */
-
 import { RangeType } from "../enums";
 import type { RangeData } from "../models/bits/range";
 
+type RegionDocument = foundry.documents.RegionDocument;
+
+/** Lancer data stored in the flags of an attack template Region. */
+export interface WeaponRangeTemplateFlags {
+  range: RangeData;
+  creator?: string;
+  ignore: { tokens: string[]; dispositions: TokenDocument.Implementation["disposition"][] };
+  isAttack?: boolean;
+}
+
 /**
- * MeasuredTemplate sublcass to create a placeable template on weapon attacks
+ * Places an attack area (Blast, Burst, Cone or Line) on the canvas as a Scene Region.
+ *
+ * Foundry v14 merged Measured Templates into Regions, so the area is placed with
+ * {@link foundry.canvas.layers.RegionLayer#placeRegion} and stored as a RegionDocument with our data
+ * in its flags.
  * @example
  * ```javascript
  * const template = WeaponRangeTemplate.fromRange({
@@ -16,29 +25,41 @@ import type { RangeData } from "../models/bits/range";
  * });
  * template?.placeTemplate()
  *   .catch(() => {}) // Handle canceled
- *   .then(t => {
- *     if (t) {
- *       // t is a MeasuredTemplate with flag data
+ *   .then(region => {
+ *     if (region) {
+ *       // region is a RegionDocument with flag data
  *     }
  * });
  * ```
  */
-export class WeaponRangeTemplate extends foundry.canvas.placeables.MeasuredTemplate {
-  get range() {
-    return this.document.getFlag(game.system.id, "range");
+export class WeaponRangeTemplate {
+  /**
+   * The unsaved Region document describing the area. Update its source (e.g. flags) before
+   * calling {@link placeTemplate}.
+   */
+  document: RegionDocument;
+
+  private actorSheet: FormApplication | undefined;
+
+  private constructor(document: RegionDocument) {
+    this.document = document;
+  }
+
+  get range(): RangeData {
+    return (
+      (this.document.getFlag(game.system.id, "range") as RangeData | undefined) ?? { type: RangeType.Blast, val: 0 }
+    );
   }
 
   get isBurst() {
     return this.range.type === RangeType.Burst;
   }
 
-  private actorSheet: FormApplication | undefined;
-
   /**
    * Creates a new WeaponRangeTemplate from a provided range object
    * @param range      - Range data
    * @param range.type - Type of template. A RangeType in typescript, or a string in js.
-   * @param range.val  - Size of template. A numeric string
+   * @param range.val  - Size of template in grid spaces. A numeric string
    * @param creator    - A token that is designated as the owner of the template.
    *                     Used to deterimine the character sheet to close as well
    *                     as a default ignore target for Cones and Lines.
@@ -47,234 +68,126 @@ export class WeaponRangeTemplate extends foundry.canvas.placeables.MeasuredTempl
     { type, val }: WeaponRangeTemplate["range"],
     creator?: Token.Implementation
   ): WeaponRangeTemplate | null {
-    if (!canvas.ready) return null;
-    const dist = val;
+    if (!canvas.ready || !canvas.grid || !canvas.scene) return null;
+    const dist = Number(val);
     if (isNaN(dist)) return null;
-    const square: boolean = canvas.grid?.isSquare;
-    const grid_distance = (canvas.scene?.dimensions as Partial<Canvas.Dimensions> | undefined)?.distance ?? 1;
+    const grid = canvas.grid;
+    // Shapes are measured in pixels; ranges are measured in grid spaces
+    const size = dist * grid.size;
+    const gridBased = !grid.isGridless;
 
-    let shape: "cone" | "ray" | "circle";
+    let shape: Record<string, unknown>;
     switch (type) {
-      case RangeType.Cone:
-        shape = "cone";
-        break;
-      case RangeType.Line:
-        shape = "ray";
+      case RangeType.Blast:
+        shape = { type: "circle", x: 0, y: 0, radius: size, gridBased };
         break;
       case RangeType.Burst:
-      case RangeType.Blast:
-        shape = "circle";
+        // An emanation measures from the edge of its base, so the Burst radius is just the range
+        shape = {
+          type: "emanation",
+          base: { type: "token", x: 0, y: 0, width: 1, height: 1, shape: CONST.TOKEN_SHAPES.RECTANGLE_1 },
+          radius: size,
+          gridBased,
+        };
+        break;
+      case RangeType.Cone:
+        shape = {
+          type: "cone",
+          x: 0,
+          y: 0,
+          radius: size,
+          angle: grid.isSquare ? 51 : 59,
+          rotation: 0,
+          curvature: "round",
+          gridBased,
+        };
+        break;
+      case RangeType.Line:
+        shape = { type: "line", x: 0, y: 0, length: size, width: grid.size, rotation: 0, gridBased };
         break;
       default:
         return null;
     }
 
-    const templateData = {
-      t: shape,
-      user: game.user!.id,
-      distance: dist * grid_distance,
-      width: grid_distance,
-      direction: 0,
-      x: 0,
-      y: 0,
-      angle: square ? 51 : 59,
-      fillColor: game.user!.color,
-      flags: {
-        [game.system.id]: {
-          range: { type, val },
-          creator: creator?.id,
-          ignore: {
-            tokens: [RangeType.Blast, RangeType.Burst].includes(type) || !creator ? [] : [creator.id],
-            dispositions: <TokenDocument.Implementation["disposition"][]>[],
-          },
-        },
+    const flags: WeaponRangeTemplateFlags = {
+      range: { type, val },
+      creator: creator?.id ?? undefined,
+      ignore: {
+        tokens: [RangeType.Blast, RangeType.Burst].includes(type) || !creator?.id ? [] : [creator.id],
+        dispositions: [],
       },
     };
-
-    const cls = getDocumentClass("MeasuredTemplate");
-    const template = new cls(templateData as any, { parent: canvas.scene ?? undefined });
-    const object = new this(template);
-    object.actorSheet = creator?.actor?.sheet ?? undefined;
-    return object;
+    const regionData = {
+      name: `${type} ${val}`,
+      color: game.user!.color,
+      shapes: [shape],
+      levels: (canvas as any).level ? [(canvas as any).level.id] : [],
+      restriction: { enabled: false },
+      highlightMode: "coverage",
+      displayMeasurements: true,
+      visibility: CONST.REGION_VISIBILITY.ALWAYS,
+      ownership: {
+        default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE,
+        [game.user!.id]: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER,
+      },
+      flags: { [game.system.id]: flags },
+    };
+    const cls = getDocumentClass("Region");
+    const document = new cls(regionData as any, { parent: canvas.scene } as any);
+    const template = new this(document as RegionDocument);
+    template.actorSheet = creator?.actor?.sheet ?? undefined;
+    return template;
   }
 
   /**
-   * Start placement of the template. Returns immediately, so cannot be used to
-   * block until a template is placed.
-   * @deprecated Since 1.0
+   * Start placement of the template. Left-click places it, right-click or Escape cancels, and the
+   * mouse wheel rotates Cones and Lines. Bursts attach to the hovered token.
+   * @returns A Promise that resolves to the created RegionDocument, or rejects when placement is
+   * canceled or fails.
    */
-  drawPreview(): void {
-    console.warn("WeaponRangeTemplate.drawPreview() is deprecated and has been replaced by placeTemplate()");
-    this.placeTemplate().catch(() => {});
-  }
-
-  /**
-   * Start placement of the template.
-   * @returns A Promise that resolves to the final MeasuredTemplateDocument or
-   * rejects when creation is canceled or fails.
-   */
-  placeTemplate(): Promise<MeasuredTemplateDocument.Implementation> {
+  async placeTemplate(): Promise<RegionDocument> {
     if (!canvas.ready) {
       ui.notifications?.error("Cannot create WeaponRangeTemplate. Canvas is not ready");
       throw new Error("Cannot create WeaponRangeTemplate. Canvas is not ready");
     }
+    const isBurst = this.isBurst;
+    const rotatable = [RangeType.Cone, RangeType.Line].includes(this.range.type);
     this.actorSheet?.minimize();
-    const initialLayer = canvas.activeLayer;
-    this.draw();
-    this.layer.activate();
-    this.layer.preview?.addChild(this);
-    return this.activatePreviewListeners(initialLayer);
-  }
-
-  private activatePreviewListeners(initialLayer: CanvasLayer | null): Promise<MeasuredTemplateDocument.Implementation> {
-    return new Promise<MeasuredTemplateDocument.Implementation>((resolve, reject) => {
-      const handlers: any = {};
-      let moveTime = 0;
-
-      // Update placement (mouse-move)
-      handlers.mm = (event: PIXI.FederatedPointerEvent) => {
-        event.stopPropagation();
-        let now = Date.now(); // Apply a 20ms throttle
-        if (now - moveTime <= 20) return;
-        const center = event.getLocalPosition(this.layer);
-        let snapped = this.snapToCenter(center);
-
-        if (this.isBurst) snapped = this.snapToToken(center);
-
-        this.document.updateSource({ x: snapped.x, y: snapped.y });
-        this.refresh();
-        moveTime = now;
-      };
-
-      // Cancel the workflow (right-click)
-      handlers.rc = (_e: unknown, do_reject: boolean = true) => {
-        this.actorSheet?.maximize();
-        // Remove the preview
-        this.layer.preview?.removeChildren().forEach(c => c.destroy());
-        canvas.stage?.off("mousemove", handlers.mm);
-        canvas.stage?.off("mousedown", handlers.lc);
-        canvas.app!.view.oncontextmenu = null;
-        canvas.app!.view.onwheel = null;
-        initialLayer?.activate();
-        if (do_reject) reject(new Error("Template creation cancelled"));
-      };
-
-      // Confirm the workflow (left-click)
-      handlers.lc = async (event: PIXI.FederatedPointerEvent) => {
-        handlers.rc(event, false);
-        let destination = this.snapToCenter(event.getLocalPosition(this.layer));
-        if (this.isBurst) {
-          destination = this.snapToToken(event.getLocalPosition(this.layer));
-          const token = this.document.flags[game.system.id]?.burstToken;
-          if (token) {
-            const ignore = this.document.flags[game.system.id].ignore.tokens;
-            ignore.push(token);
-            this.document.updateSource({
-              [`flags.${game.system.id}.ignore.tokens`]: ignore,
-            });
-          }
-        }
-        this.document.updateSource(destination);
-        const template: MeasuredTemplateDocument | undefined = (
-          await canvas.scene!.createEmbeddedDocuments("MeasuredTemplate", [this.document.toObject()])
-        )?.shift() as any;
-        if (template === undefined) {
-          reject(new Error("Template creation failed"));
-          return;
-        }
-        // in order to ensure the template is in a useful state, we poll until
-        // it's rendered and only then resolve the promise.
-        let n_polls = 0;
-        const poll = setInterval(() => {
-          ++n_polls;
-          if (template.object?.shape) {
-            clearInterval(poll);
-            resolve(template);
-          } else if (n_polls >= 100) {
-            clearInterval(poll);
-            reject(new Error(`Failed to draw template after ${n_polls * 5}ms`));
-          }
-        }, 5);
-      };
-
-      // Rotate the template by 3 degree increments (mouse-wheel)
-      handlers.mw = (event: WheelEvent) => {
-        if (event.ctrlKey) event.preventDefault(); // Avoid zooming the browser window
-        event.stopPropagation();
-        let delta = canvas.grid!.type > CONST.GRID_TYPES.SQUARE ? 30 : 15;
-        let snap = event.shiftKey ? delta : 5;
-        this.document.updateSource({ direction: this.document.direction + snap * Math.sign(event.deltaY) });
-        this.refresh();
-      };
-
-      // Activate listeners
-      canvas.stage!.on("mousemove", handlers.mm);
-      canvas.stage!.on("mousedown", handlers.lc);
-      canvas.app!.view.oncontextmenu = handlers.rc;
-      canvas.app!.view.onwheel = handlers.mw;
-    });
-  }
-
-  /**
-   * Snapping function to only snap to the center of spaces rather than corners.
-   */
-  private snapToCenter({ x, y }: { x: number; y: number }): { x: number; y: number } {
-    const snapped = canvas.grid!.getCenterPoint({ x, y });
-    return { x: Math.round(snapped.x), y: Math.round(snapped.y) };
-  }
-
-  /**
-   * Snapping function to snap to the center of a hovered token. Also resizes
-   * the template for bursts.
-   */
-  private snapToToken({ x, y }: { x: number; y: number }): { x: number; y: number } {
-    const token = canvas
-      .tokens!.placeables.filter(t => {
-        // test if cursor is inside token
-        return t.x < x && t.x + t.w > x && t.y < y && t.y + t.h > y;
-      })
-      .reduce((r: Token | null, t) => {
-        // skip hidden tokens
-        if (!t.visible) return r;
-        // use the token that is closest.
-        if (
-          r === null ||
-          r === undefined ||
-          canvas.grid!.measurePath([{ x, y }, t.center]) < canvas.grid!.measurePath([{ x, y }, r.center])
-        )
-          return t;
-        else return r;
-      }, null);
-    if (token) {
-      this.document.updateSource({
-        distance: this.getBurstDistance(token.document.width),
-        [`flags.${game.system.id}.burstToken`]: token.id,
+    let region: RegionDocument | null;
+    try {
+      region = await (canvas as any).regions.placeRegion(this.document.toObject(), {
+        attachToToken: isBurst,
+        allowRotation: rotatable,
+        // Snap to the center of grid spaces rather than to corners and edges
+        onMove: ({ shape, position, snap }: { shape: any; position: Canvas.Point; snap: boolean }) => {
+          if (isBurst || !snap || canvas.grid!.isGridless) return;
+          shape.move(canvas.grid!.getCenterPoint(position), { snap: false });
+          return false;
+        },
       });
-      return { x: Math.round(token.center.x), y: Math.round(token.center.y) };
-    } else {
-      this.document.updateSource({ distance: this.getBurstDistance(1) });
-      return this.snapToCenter({ x, y });
+    } finally {
+      this.actorSheet?.maximize();
     }
-  }
+    if (!region) throw new Error("Template creation cancelled");
 
-  /**
-   * Get fine-tuned sizing data for Burst templates
-   */
-  private getBurstDistance(size: number): number {
-    return (<RangeData>this.range).val + size / 2;
+    // A Burst does not affect the token it emanates from
+    // fvtt-types has no v14 release, so it does not know RegionDocument#attachment yet
+    const burstToken: string | undefined = isBurst ? (region as any).attachment?.token?.id : undefined;
+    if (burstToken) {
+      const ignore = foundry.utils.deepClone(
+        region.getFlag(game.system.id, "ignore") as WeaponRangeTemplateFlags["ignore"]
+      );
+      if (!ignore.tokens.includes(burstToken)) ignore.tokens.push(burstToken);
+      await region.setFlag(game.system.id, "ignore", ignore);
+    }
+    return region;
   }
 }
 
 declare module "fvtt-types/configuration" {
   interface FlagConfig {
-    MeasuredTemplate: {
-      lancer: {
-        range: RangeData;
-        creator?: string;
-        burstToken?: string;
-        ignore: { tokens: string[]; dispositions: TokenDocument.Implementation["disposition"][] };
-        isAttack?: boolean;
-      };
+    Region: {
+      lancer: WeaponRangeTemplateFlags;
     };
   }
 }
